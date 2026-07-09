@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>⌨️ TypeSwift – mobile typing test</title>
+  <style>
+    /* ----- global reset & typography ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: linear-gradient(145deg, #0b0f1c 0%, #1a1f30 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 16px;
+      touch-action: pan-y; 
+    }
+
+    .app-card {
+      max-width: 480px;
+      width: 100%;
+      background: rgba(25, 30, 45, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 48px;
+      padding: 28px 20px 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+    }
+
+    h1 {
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: #f0f3fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-left: 6px;
+    }
+    h1 small {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #7f8bb3;
+      margin-left: auto;
+      letter-spacing: 0.3px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px 14px;
+      border-radius: 40px;
+    }
+
+    /* ----- stats row ----- */
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 60px;
+      padding: 12px 16px;
+      margin: 14px 0 20px;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #8892b0;
+      font-weight: 500;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #e6edff;
+      line-height: 1.3;
+      letter-spacing: -0.5px;
+    }
+    .stat-value small {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: #7a86aa;
+      margin-left: 2px;
+    }
+    .stat-value.time {
+      color: #a6b3e0;
+    }
+
+    /* ----- quote / text display ----- */
+    .text-display {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 28px;
+      padding: 24px 20px;
+      margin: 8px 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 6px 12px rgba(0,0,0,0.3);
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+    }
+    #quoteDisplay {
+      font-size: 1.4rem;
+      line-height: 1.5;
+      font-weight: 450;
+      color: #cad2f0;
+      word-break: break-word;
+      letter-spacing: 0.2px;
+      width: 100%;
+      transition: color 0.1s;
+    }
+    #quoteDisplay .char-correct {
+      color: #b5f0b5;
+      text-shadow: 0 0 6px rgba(90, 220, 120, 0.3);
+    }
+    #quoteDisplay .char-incorrect {
+      color: #ff7b7b;
+      background: rgba(255, 70, 70, 0.15);
+      border-radius: 4px;
+      text-shadow: 0 0 8px rgba(255, 80, 80, 0.2);
+    }
+    #quoteDisplay .char-current {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      padding: 0 2px;
+      border-left: 2px solid #b7cdff;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 50% { border-color: #b7cdff; }
+      50.1%, 100% { border-color: transparent; }
+    }
+    #quoteDisplay .char-pending {
+      color: #a0adcf;
+    }
+
+    /* ----- input field (hidden but focusable) ----- */
+    #typingArea {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    /* ----- keyboard / control row ----- */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      margin: 16px 0 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      flex: 1;
+      min-width: 110px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 60px;
+      padding: 16px 10px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #d3ddfa;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+      background: #2a3147;
+    }
+    .btn:active {
+      transform: scale(0.95);
+      background: #3d4663;
+    }
+    .btn-primary {
+      background: #3f4b70;
+      border-color: #5b6a94;
+      color: white;
+      box-shadow: 0 6px 12px rgba(0, 20, 40, 0.5);
+    }
+    .btn-primary:active {
+      background: #54648f;
+    }
+    .btn-secondary {
+      background: #262d44;
+      border-color: #3f4866;
+    }
+    .btn-secondary:active {
+      background: #353f5c;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      transform: none;
+      pointer-events: none;
+    }
+
+    /* ----- result chip ----- */
+    .result-chip {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 40px;
+      padding: 10px 20px;
+      margin: 16px 0 0;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+    .result-chip span {
+      font-weight: 500;
+      color: #aab8e3;
+      letter-spacing: 0.3px;
+      font-size: 0.95rem;
+    }
+    .result-chip strong {
+      color: #d6e2ff;
+      font-weight: 600;
+    }
+
+    /* mobile fine-tune */
+    @media (max-width: 420px) {
+      .app-card { padding: 20px 14px; }
+      .stats { padding: 10px 12px; }
+      .stat-value { font-size: 1.3rem; }
+      #quoteDisplay { font-size: 1.2rem; padding: 4px 0; }
+      .btn { min-width: 80px; padding: 14px 8px; font-size: 1rem; }
+    }
+    /* extra tap friendliness */
+    .btn, .stat-item, .text-display {
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-card" role="main">
+    <h1>
+      ⌨️ TypeSwift
+      <small>WPM</small>
+    </h1>
+
+    <!-- stats -->
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">⏱️ Time</span>
+        <span class="stat-value time" id="timerDisplay">0<small>s</small></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">⚡ Speed</span>
+        <span class="stat-value" id="wpmDisplay">0<small>wpm</small></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">🎯 Accuracy</span>
+        <span class="stat-value" id="accuracyDisplay">100<small>%</small></span>
+      </div>
+    </div>
+
+    <!-- quote panel -->
+    <div class="text-display" id="textDisplay" role="article" aria-label="Typing test text">
+      <div id="quoteDisplay">Tap “Start” & type</div>
+    </div>
+
+    <!-- hidden input for capturing keystrokes -->
+    <input type="text" id="typingArea" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Type here" />
+
+    <!-- action buttons -->
+    <div class="action-row">
+      <button class="btn btn-primary" id="startBtn">▶ Start</button>
+      <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+    </div>
+
+    <!-- result message -->
+    <div class="result-chip" id="resultMessage">
+      <span>🏁 press <strong>Start</strong> to begin</span>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      "use strict";
+
+      // ----- DOM refs -----
+      const quoteDisplay = document.getElementById('quoteDisplay');
+      const timerDisplay = document.getElementById('timerDisplay');
+      const wpmDisplay = document.getElementById('wpmDisplay');
+      const accuracyDisplay = document.getElementById('accuracyDisplay');
+      const startBtn = document.getElementById('startBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const resultMsg = document.getElementById('resultMessage');
+      const typingInput = document.getElementById('typingArea');
+
+      // ----- quotes (short, mobile friendly) -----
+      const QUOTES = [
+  "The only way to do great work is to love what you do.",
+  "Life is what happens when you are busy making other plans.",
+  "In the middle of difficulty lies opportunity.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "Believe you can and you are halfway there.",
+  "Act as if what you do makes a difference. It does.",
+  "Keep your face to the sunshine and you cannot see a shadow.",
+  "What you get by achieving your goals is not as important as what you become.",
+  "Dream big and dare to fail.",
+  "It does not matter how slowly you go as long as you do not stop.",
+  "Every expert was once a beginner.",
+  "Small progress is still progress.",
+  "Consistency beats perfection.",
+  "Your future is created by what you do today.",
+  "Discipline is choosing what you want most over what you want now.",
+  "Success begins with self-belief.",
+  "Never stop learning because life never stops teaching.",
+  "Push yourself because no one else will do it for you.",
+  "Great things take time.",
+  "Hard work always pays off.",
+  "Stay positive, work hard, and make it happen.",
+  "Focus on the goal, not the obstacles.",
+  "Don't be afraid to start over.",
+  "Mistakes are proof that you are trying.",
+  "Be stronger than your excuses.",
+  "Every day is a new opportunity.",
+  "The best way to predict the future is to create it.",
+  "Learning never exhausts the mind.",
+  "Difficult roads often lead to beautiful destinations.",
+  "Your only limit is your mindset.",
+  "Stay hungry. Stay curious.",
+  "Success starts outside your comfort zone.",
+  "Believe in yourself even when no one else does.",
+  "Practice makes progress.",
+  "One step at a time is enough.",
+  "Don't compare your beginning to someone else's middle.",
+  "The secret of success is consistency.",
+  "Be patient. Great things take time.",
+  "Dream it. Believe it. Achieve it.",
+  "You are capable of amazing things.",
+  "A little progress each day adds up to big results.",
+  "Don't quit before the miracle happens.",
+  "Your attitude determines your direction.",
+  "Success is built one day at a time.",
+  "Every challenge is an opportunity to grow.",
+  "Turn your dreams into plans.",
+  "The harder you work, the luckier you become.",
+  "Stay focused and never give up.",
+  "Success belongs to those who never stop trying.",
+  "Nothing changes unless you do.",
+  "Be fearless in the pursuit of your goals.",
+  "Today's effort becomes tomorrow's success.",
+  "The journey of a thousand miles begins with one step.",
+  "Your dreams are worth the effort.",
+  "Do something today that your future self will thank you for.",
+  "Failure is a lesson, not the end.",
+  "You don't have to be perfect to be successful.",
+  "Believe in progress, not perfection.",
+  "Keep moving forward, no matter how small the step.",
+  "Success comes to those who stay committed."
+];
+
+      // ----- state -----
+      let currentQuote = '';
+      let quoteChars = [];            // array of characters
+      let currentIndex = 0;           // position in quote
+      let startTime = null;
+      let timerInterval = null;
+      let elapsedSeconds = 0;
+      let isActive = false;
+      let isFinished = false;
+      let totalKeystrokes = 0;        // total typed chars (including backspaces)
+      let correctKeystrokes = 0;      // correctly typed chars (only forward)
+      let errors = 0;                // count of incorrect forward strokes
+      let isWaitingForStart = true;   // new round not started
+
+      // ----- helper functions -----
+      function pickRandomQuote() {
+        return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+      }
+
+      // reset everything (keep quote)
+      function fullReset() {
+        stopTimer();
+        // reset state
+        currentIndex = 0;
+        startTime = null;
+        elapsedSeconds = 0;
+        isActive = false;
+        isFinished = false;
+        totalKeystrokes = 0;
+        correctKeystrokes = 0;
+        errors = 0;
+        isWaitingForStart = true;
+
+        // clear input
+        typingInput.value = '';
+        // pick fresh quote
+        currentQuote = pickRandomQuote();
+        quoteChars = currentQuote.split('');
+        renderQuote();
+        updateStats(0, 0, 100);
+        timerDisplay.innerHTML = `0<small>s</small>`;
+        resultMsg.innerHTML = `<span>🏁 tap <strong>Start</strong> to begin</span>`;
+        startBtn.disabled = false;
+        startBtn.textContent = '▶ Start';
+        typingInput.blur();
+      }
+
+      // render quote with highlighting
+      function renderQuote() {
+        if (!quoteChars.length) {
+          quoteDisplay.textContent = '…';
+          return;
+        }
+        let html = '';
+        for (let i = 0; i < quoteChars.length; i++) {
+          const ch = quoteChars[i];
+          let className = 'char-pending';
+          if (i < currentIndex) {
+            // typed: check if correct
+            className = 'char-correct';   // we only store correct forward, but we handle error markers separately
+            // but we need to show errors: we can compare with original quote
+            // we stored original in currentQuote
+            if (currentQuote[i] !== ch) {
+              className = 'char-incorrect';
+            } else {
+              className = 'char-correct';
+            }
+          } else if (i === currentIndex && !isFinished && isActive) {
+            className = 'char-current';
+          }
+          // escape html entities
+          const displayChar = ch === ' ' ? '&nbsp;' : escapeHtml(ch);
+          html += `<span class="${className}">${displayChar}</span>`;
+        }
+        quoteDisplay.innerHTML = html;
+      }
+
+      // simple escape
+      function escapeHtml(ch) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return map[ch] || ch;
+      }
+
+      // update stats display
+      function updateStats(wpm, acc, time) {
+        wpmDisplay.innerHTML = `${Math.round(wpm)}<small>wpm</small>`;
+        accuracyDisplay.innerHTML = `${Math.round(acc)}<small>%</small>`;
+        if (time !== undefined) {
+          timerDisplay.innerHTML = `${Math.floor(time)}<small>s</small>`;
+        }
+      }
+
+      // compute WPM and accuracy
+      function computeStats() {
+        if (elapsedSeconds === 0) return { wpm: 0, acc: 100 };
+        const minutes = elapsedSeconds / 60;
+        // standard: (correct chars / 5) / minutes
+        const words = correctKeystrokes / 5;
+        const wpm = words / minutes;
+        let acc = 100;
+        if (totalKeystrokes > 0) {
+          acc = (correctKeystrokes / totalKeystrokes) * 100;
+        }
+        return { wpm, acc };
+      }
+
+      // stop timer
+      function stopTimer() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }
+
+      // start timer & set active
+      function startTest() {
+        if (isActive || isFinished) return;
+        // if waiting for start, initialize
+        if (isWaitingForStart) {
+          // pick fresh quote
+          currentQuote = pickRandomQuote();
+          quoteChars = currentQuote.split('');
+          currentIndex = 0;
+          totalKeystrokes = 0;
+          correctKeystrokes = 0;
+          errors = 0;
+          elapsedSeconds = 0;
+          isFinished = false;
+          startTime = null;
+          renderQuote();
+          updateStats(0, 100, 0);
+          timerDisplay.innerHTML = `0<small>s</small>`;
+          resultMsg.innerHTML = `<span>⌨️ typing…</span>`;
+          isWaitingForStart = false;
+        }
+
+        // focus input
+        typingInput.focus();
+        typingInput.value = ''; // clean
+        isActive = true;
+        startBtn.textContent = '⏳ Typing…';
+        startBtn.disabled = true;
+        startTime = Date.now() - elapsedSeconds * 1000; // keep elapsed
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          if (!isActive) return;
+          const now = Date.now();
+          elapsedSeconds = (now - startTime) / 1000;
+          if (elapsedSeconds < 0) elapsedSeconds = 0;
+          const { wpm, acc } = computeStats();
+          updateStats(wpm, acc, elapsedSeconds);
+          // if finished, stop timer
+          if (isFinished) {
+            stopTimer();
+            startBtn.textContent = '✔ Done';
+          }
+        }, 200);
+      }
+
+      // finish test
+      function finishTest() {
+        if (isFinished) return;
+        isActive = false;
+        isFinished = true;
+        stopTimer();
+        startBtn.disabled = false;
+        startBtn.textContent = '↻ Retry';
+        const { wpm, acc } = computeStats();
+        updateStats(wpm, acc, elapsedSeconds);
+        resultMsg.innerHTML = `<span>✅ Finished! <strong>${Math.round(wpm)}</strong> wpm · <strong>${Math.round(acc)}</strong>% accuracy</span>`;
+        renderQuote();
+        typingInput.blur();
+        isWaitingForStart = false; 
+      }
+
+      // ----- handle key input (on input event) -----
+      function handleTyping(e) {
+        if (!isActive || isFinished) {
+          // if not active but input has content, clear it
+          if (typingInput.value) typingInput.value = '';
+          return;
+        }
+
+        const inputVal = typingInput.value;
+        if (!inputVal) return;
+
+        // we process only the last character (because we clear after each)
+        const lastChar = inputVal[inputVal.length - 1];
+        // but we need to handle backspace: we compare length
+        // we will detect if backspace was used: current input length vs expected?
+        // simpler: we use beforeinput or keydown, but input event works if we track length
+        // we'll handle: if length increased by 1 -> forward, if decreased -> backspace, else clear
+
+        // store previous index
+        const prevIndex = currentIndex;
+        // length change
+        const currentLen = inputVal.length;
+        // we can compute the typed char: if currentLen > 0
+        // but we want to handle backspace: if inputVal length decreased, we need to revert index
+        // we'll maintain a simple approach: each time, we read the last char and increment if it matches.
+        // also we handle backspace by checking if the input is empty or shorter than expected.
+        // But because we clear input each time, we'll just process the new char.
+
+        // we'll process the new character if there is one
+        if (currentLen > 0) {
+          const typed = inputVal[currentLen - 1];
+          // check if we are still within quote
+          if (currentIndex < quoteChars.length) {
+            const expected = quoteChars[currentIndex];
+            totalKeystrokes++;
+            if (typed === expected) {
+              correctKeystrokes++;
+              currentIndex++;
+            } else {
+              errors++;
+              // still move forward? In many tests, incorrect char still advances index
+              // but we mark it as error
+              currentIndex++;
+              // we also mark error in rendering
+            }
+            // render
+            renderQuote();
+            // check if complete
+            if (currentIndex >= quoteChars.length) {
+              finishTest();
+            }
+            // update stats (wpm, acc) - timer will handle
+            const { wpm, acc } = computeStats();
+            updateStats(wpm, acc, elapsedSeconds);
+          } else {
+            // quote already finished, ignore
+          }
+          // clear input for next char
+          typingInput.value = '';
+        } else {
+          // backspace: if input is empty (backspace) -> we go back one step
+          // but only if we are not at start
+          if (currentIndex > 0 && !isFinished) {
+            // revert index, but we don't revert stats – backspace doesn't change correct/error count
+            // we just move cursor back
+            currentIndex--;
+            renderQuote();
+            // update stats (still same)
+            const { wpm, acc } = computeStats();
+            updateStats(wpm, acc, elapsedSeconds);
+          }
+          // clear anyway
+          typingInput.value = '';
+        }
+        // keep focus
+        typingInput.focus();
+      }
+
+      // ----- event listeners -----
+      typingInput.addEventListener('input', handleTyping);
+
+      // start button
+      startBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (isFinished || isActive) {
+          // if finished, reset then start
+          if (isFinished) {
+            fullReset();
+            // then start
+            setTimeout(() => startTest(), 20);
+          } else if (isActive) {
+            // already active, do nothing
+          }
+        } else {
+          startTest();
+        }
+      });
+
+      // reset button
+      resetBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fullReset();
+        typingInput.focus();
+        // after reset, if we want to start fresh
+        startBtn.textContent = '▶ Start';
+        startBtn.disabled = false;
+        isWaitingForStart = true;
+        isActive = false;
+        isFinished = false;
+        stopTimer();
+        timerDisplay.innerHTML = `0<small>s</small>`;
+        resultMsg.innerHTML = `<span>🔄 reset · tap <strong>Start</strong></span>`;
+        renderQuote();
+        typingInput.blur();
+      });
+
+      // prevent zoom on double tap (iOS)
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function (e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) e.preventDefault();
+        lastTouchEnd = now;
+      }, false);
+
+      // init: load a quote
+      (function init() {
+        currentQuote = pickRandomQuote();
+        quoteChars = currentQuote.split('');
+        renderQuote();
+        updateStats(0, 100, 0);
+        timerDisplay.innerHTML = `0<small>s</small>`;
+        resultMsg.innerHTML = `<span>🏁 tap <strong>Start</strong> to begin</span>`;
+        typingInput.value = '';
+        isWaitingForStart = true;
+        startBtn.textContent = '▶ Start';
+        startBtn.disabled = false;
+      })();
+
+    })();
+  </script>
+</body>
+</html>
